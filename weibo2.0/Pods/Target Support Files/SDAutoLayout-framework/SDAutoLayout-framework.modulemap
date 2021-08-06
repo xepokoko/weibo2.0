@@ -1,0 +1,6 @@
+framework module SDAutoLayout {
+  umbrella header "SDAutoLayout-framework-umbrella.h"
+
+  export *
+  module * { export * }
+}

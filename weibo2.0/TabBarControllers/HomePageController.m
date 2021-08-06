@@ -14,6 +14,7 @@
 #import "EPPicture.h"
 #import "EPCollectionViewCell.h"
 #import "EPCollectionViewFlowLayout.h"
+#import <AFNetworking/AFNetworking.h>
 #define ScreenHeight [UIScreen mainScreen].bounds.size.height
 #define ScreenWidth [UIScreen mainScreen].bounds.size.width
 
@@ -181,6 +182,41 @@
 #pragma mark - 加载最新的statuses
 -(void) loadNewStatuses
 {
+    //创建AFN管理
+    AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
+    //设置url
+    NSString* baseURL = @"https://api.weibo.com/2/statuses/home_timeline.json";
+    NSMutableDictionary *param = [[NSMutableDictionary alloc]init];
+    param[@"access_token"] = @"2.002bZvfG76EftBc8b45ca675cadPOB";
+    
+    //GET请求方法
+    [manager GET:baseURL parameters:param headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+            //将返回的字典数组resposeObject抽离出statuses字典数组
+            NSArray* dicArray = responseObject[@"statuses"];
+            //将字典数组转化为模型数组
+            self.statuses=[self statusArrayWithDictionaryArray:dicArray];
+            //将我的微博和网络数据拼接起来
+            [self.allStatuses addObjectsFromArray:self.myStatuses];
+            [self.allStatuses addObjectsFromArray:self.statuses];
+            
+            //将作者拼起来
+            [self.allUsers addObjectsFromArray:self.myUsers];
+            [self.allUsers addObjectsFromArray:self.users];
+            NSInteger i =0;
+            for(EPStatuses* status in self.allStatuses)
+            {
+                status.users = self.allUsers[i];
+                i++;
+            }
+            //在主线程中做信息更新，不然会报错。
+            [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+                [self.collectionView reloadData];
+            }];
+        
+        } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+            NSLog(@"连接失败，失败原因---%@",error);
+        }];
+    /*
     NSURL* url = [NSURL URLWithString:@"https://api.weibo.com/2/statuses/home_timeline.json?access_token=2.002bZvfGlhZb1C3a01768d7d0F8JKg"];
     NSURLRequest* request = [[NSURLRequest alloc]initWithURL:url];
     
@@ -220,6 +256,7 @@
     [dataTask resume];
     
 //    CFRunLoopRun();//恢复runloop
+     */
 }
 #pragma mark - 设置登录后用的view
 -(void)layOutMainView
@@ -777,37 +814,38 @@ NSString* filepath = [docpath stringByAppendingPathComponent:name];
     [self.retWeetTextHeightArray removeAllObjects];
     [self.picHeightArray removeAllObjects];
     
-    
-    
-    NSURL* url = [NSURL URLWithString:@"https://api.weibo.com/2/statuses/home_timeline.json?access_token=2.002bZvfGlhZb1C3a01768d7d0F8JKg"];
-    NSURLRequest* request = [[NSURLRequest alloc]initWithURL:url];
-    
-    NSURLSession* urlSession = [NSURLSession sharedSession];
-    NSURLSessionDataTask* dataTask = [urlSession dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error)
-     {
+    //创建AFN管理
+    AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
+    //设置url
+    NSString* baseURL = @"https://api.weibo.com/2/statuses/home_timeline.json";
+    NSMutableDictionary *param = [[NSMutableDictionary alloc]init];
+    param[@"access_token"] = @"2.002bZvfG76EftBc8b45ca675cadPOB";
+    [manager GET:baseURL parameters:param headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+            
+            NSArray* dicArray = responseObject[@"statuses"];
+            //将字典数组转化为模型数组
+            self.statuses=[self statusArrayWithDictionaryArray:dicArray];
         
-        NSDictionary* statusesDic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-        NSArray* dicArray = statusesDic[@"statuses"];
-        //将字典数组转化为模型数组
-        self.statuses=[self statusArrayWithDictionaryArray:dicArray];
-    
-        //将原本的微博和新的网络数据拼接起来
-        [self.allStatuses addObjectsFromArray:self.statuses];
-        //将作者拼起来
-        [self.allUsers addObjectsFromArray:self.users];
-        NSInteger i =0;
-        for(EPStatuses* status in self.allStatuses)
-        {
-            status.users = self.allUsers[i];
-            i++;
-        }
-        //在主线程中做信息更新，不然会报错。
-        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-            [self.collectionView reloadData];
+            //将原本的微博和新的网络数据拼接起来
+            [self.allStatuses addObjectsFromArray:self.statuses];
+            //将作者拼起来
+            [self.allUsers addObjectsFromArray:self.users];
+            NSInteger i =0;
+            for(EPStatuses* status in self.allStatuses)
+            {
+                status.users = self.allUsers[i];
+                i++;
+            }
+            //在主线程中做信息更新，不然会报错。
+            [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+                [self.collectionView reloadData];
+            }];
+
+        } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+            NSLog(@"错误原因如下：%@",error);
         }];
-    }];
     
-    [dataTask resume];
+            
 }
 
 
